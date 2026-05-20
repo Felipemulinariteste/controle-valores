@@ -601,171 +601,51 @@
   </main>
 
   <script>
-  (() => {
-    const STORAGE_KEY = 'controle-valores-guardados-v9';
-    const savedValueInput = document.getElementById('savedValue');
-    const depositValueInput = document.getElementById('depositValue');
-    const addSavedBtn = document.getElementById('addSavedBtn');
-    const addDepositBtn = document.getElementById('addDepositBtn');
-    const historyBody = document.getElementById('historyBody');
-    const totalSavedEl = document.getElementById('totalSaved');
-    const totalDepositedEl = document.getElementById('totalDeposited');
-    const availableSavedEl = document.getElementById('availableSaved');
-    const cardCountEl = document.getElementById('cardCount');
-    const quickSummary = document.getElementById('quickSummary');
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    const editModal = document.getElementById('editModal');
-    const editPwModal = document.getElementById('editPwModal');
-    const editType = document.getElementById('editType');
-    const editValue = document.getElementById('editValue');
-    const editCancel = document.getElementById('editCancel');
-    const editSave = document.getElementById('editSave');
-    const editPwInput = document.getElementById('editPwInput');
-    const editPwToggle = document.getElementById('editPwToggle');
-    const editPwCancel = document.getElementById('editPwCancel');
-    const editPwConfirm = document.getElementById('editPwConfirm');
-    const root = document.documentElement;
-
-    let state = { entries: [] };
-    let pendingEditId = null;
-
-    const money = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-    const fmtDate = d => new Intl.DateTimeFormat('pt-BR').format(d);
-
-    function loadState() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return { entries: [] };
-        const parsed = JSON.parse(raw);
-        return { entries: Array.isArray(parsed.entries) ? parsed.entries : [] };
-      } catch (e) {
-        return { entries: [] };
-      }
-    }
-
-    function saveState() {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
-    }
-
-    function totals() {
-      let saved = 0, deposited = 0;
-      for (const e of state.entries) {
-        if (e.type === 'saved') saved += Number(e.value) || 0;
-        if (e.type === 'deposit') deposited += Number(e.value) || 0;
-      }
-      return { saved, deposited, available: saved - deposited };
-    }
-
-    function createEntry(type, value) {
-      const now = new Date();
-      return { id: String(Date.now()) + Math.random().toString(16).slice(2), type, value: Number(value), date: fmtDate(now), ts: now.toISOString() };
-    }
-
-    function render() {
-      const { saved, deposited, available } = totals();
-      totalSavedEl.textContent = money(saved);
-      totalDepositedEl.textContent = money(deposited);
-      availableSavedEl.textContent = money(available);
-      cardCountEl.textContent = String(state.entries.length);
-      quickSummary.textContent = `Saldo disponível de ${money(available)}.`;
-      historyBody.innerHTML = state.entries.length ? state.entries.map(e => `
-        <tr>
-          <td>${e.type === 'saved' ? 'Guardado' : 'Depositado'}</td>
-          <td>${money(e.value)}</td>
-          <td>${e.date}</td>
-          <td><button class="btn btn-secondary" type="button" data-edit="${e.id}">Editar</button></td>
-        </tr>`).join('') : '<tr><td colspan="4">Nenhum lançamento ainda.</td></tr>';
-      saveState();
-    }
-
-    function addSaved() {
-      const value = Number(String(savedValueInput.value).replace(',', '.'));
-      if (!value || value <= 0) { savedValueInput.focus(); return; }
-      state.entries.unshift(createEntry('saved', value));
-      savedValueInput.value = '';
-      render();
-    }
-
-    function addDeposit() {
-      const value = Number(String(depositValueInput.value).replace(',', '.'));
-      if (!value || value <= 0) { depositValueInput.focus(); return; }
-      const { available } = totals();
-      if (value > available) { alert('O valor depositado não pode ser maior que o saldo guardado disponível.'); depositValueInput.focus(); return; }
-      state.entries.unshift(createEntry('deposit', value));
-      depositValueInput.value = '';
-      render();
-    }
-
-    function openEdit(id) {
-      const entry = state.entries.find(e => e.id === id);
-      if (!entry) return;
-      pendingEditId = id;
-      editType.value = entry.type;
-      editValue.value = entry.value;
-      editModal.style.display = 'flex';
-    }
-
-    function closeEdit() {
-      editModal.style.display = 'none';
-      pendingEditId = null;
-    }
-
-    function startPasswordEdit() {
-      editPwModal.style.display = 'flex';
-      editPwInput.value = '';
-      editPwInput.type = 'password';
-      editPwToggle.textContent = '👁';
-      editPwInput.focus();
-    }
-
-    function confirmEditWithPassword() {
-      if (!pendingEditId) return;
-      if (editPwInput.value !== '1234') { alert('Senha incorreta.'); return; }
-      const entry = state.entries.find(e => e.id === pendingEditId);
-      if (!entry) return;
-      const newType = editType.value === 'deposit' ? 'deposit' : 'saved';
-      const newValue = Number(String(editValue.value).replace(',', '.'));
-      if (!newValue || newValue <= 0) { editValue.focus(); return; }
-      entry.type = newType;
-      entry.value = newValue;
-      closeEdit();
-      editPwModal.style.display = 'none';
-      render();
-    }
-
-    function applyTheme(theme) {
-      root.setAttribute('data-theme', theme);
-      if (themeToggleBtn) themeToggleBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
-      try { localStorage.setItem('preferred-theme', theme); } catch (e) {}
-    }
-
-    function initTheme() {
-      let saved = null;
-      try { saved = localStorage.getItem('preferred-theme'); } catch (e) {}
-      applyTheme(saved === 'dark' ? 'dark' : 'light');
-      if (themeToggleBtn) themeToggleBtn.addEventListener('click', () => applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
-    }
-
-    addSavedBtn.addEventListener('click', addSaved);
-    addDepositBtn.addEventListener('click', addDeposit);
-    savedValueInput.addEventListener('keydown', e => { if (e.key === 'Enter') addSaved(); });
-    depositValueInput.addEventListener('keydown', e => { if (e.key === 'Enter') addDeposit(); });
-    historyBody.addEventListener('click', e => { const btn = e.target.closest('[data-edit]'); if (btn) openEdit(btn.getAttribute('data-edit')); });
-    editCancel.addEventListener('click', closeEdit);
-    editSave.addEventListener('click', startPasswordEdit);
-    editPwCancel.addEventListener('click', () => { editPwModal.style.display = 'none'; });
-    editPwConfirm.addEventListener('click', confirmEditWithPassword);
-    editPwToggle.addEventListener('click', () => { editPwInput.type = editPwInput.type === 'password' ? 'text' : 'password'; editPwToggle.textContent = editPwInput.type === 'password' ? '👁' : '🙈'; });
-
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') { closeEdit(); editPwModal.style.display = 'none'; }
-    });
-
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
-    state = loadState();
-    initTheme();
-    render();
-  })();
+(() => {
+  const STORAGE_KEY = 'controle-valores-guardados-v10';
+  const el = id => document.getElementById(id);
+  const savedValueInput = el('savedValue');
+  const depositValueInput = el('depositValue');
+  const addSavedBtn = el('addSavedBtn');
+  const addDepositBtn = el('addDepositBtn');
+  const historyBody = el('historyBody');
+  const quickSummary = el('quickSummary');
+  const totalSavedEl = el('totalSaved');
+  const totalDepositedEl = el('totalDeposited');
+  const availableSavedEl = el('availableSaved');
+  const cardCountEl = el('cardCount');
+  const themeToggleBtn = el('themeToggleBtn');
+  const editModal = el('editModal');
+  const editType = el('editType');
+  const editValue = el('editValue');
+  const editCancel = el('editCancel');
+  const editSave = el('editSave');
+  const editPwModal = el('editPwModal');
+  const editPwInput = el('editPwInput');
+  const editPwToggle = el('editPwToggle');
+  const editPwCancel = el('editPwCancel');
+  const editPwConfirm = el('editPwConfirm');
+  const root = document.documentElement;
+  const money = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
+  const fmtDate = d => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(d);
+  let state = { entries: [] };
+  let pendingEditId = null;
+  const loadState = () => { try { const raw = localStorage.getItem(STORAGE_KEY); const parsed = raw ? JSON.parse(raw) : { entries: [] }; return { entries: Array.isArray(parsed.entries) ? parsed.entries : [] }; } catch { return { entries: [] }; } };
+  const saveState = () => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} };
+  const num = v => { const n = Number(String(v).replace(',', '.')); return Number.isFinite(n) ? n : 0; };
+  function totals() { let saved = 0, deposited = 0; for (const e of state.entries) { const v = num(e.value); if (e.type === 'saved') saved += v; if (e.type === 'deposit') deposited += v; } return { saved, deposited, available: saved - deposited }; }
+  function createEntry(type, value) { const now = new Date(); return { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, type, value: num(value), date: fmtDate(now), ts: now.toISOString() }; }
+  function render() { const { saved, deposited, available } = totals(); if (totalSavedEl) totalSavedEl.textContent = money(saved); if (totalDepositedEl) totalDepositedEl.textContent = money(deposited); if (availableSavedEl) availableSavedEl.textContent = money(available); if (cardCountEl) cardCountEl.textContent = String(state.entries.length); if (quickSummary) quickSummary.textContent = state.entries.length ? `Você tem ${money(available)} disponíveis no guardado.` : 'Nenhum lançamento registrado ainda.'; if (historyBody) historyBody.innerHTML = state.entries.length ? state.entries.map(entry => `<tr><td>${entry.type === 'saved' ? 'Guardado' : 'Depositado'}</td><td>${money(entry.value)}</td><td>${entry.date || ''}</td><td><button class="btn btn-secondary" type="button" data-edit="${entry.id}">Editar</button></td></tr>`).join('') : '<tr><td colspan="4">Nenhum lançamento ainda.</td></tr>'; saveState(); }
+  function addSaved() { const value = num(savedValueInput?.value); if (!value || value <= 0) { savedValueInput?.focus(); return; } state.entries.unshift(createEntry('saved', value)); if (savedValueInput) savedValueInput.value = ''; render(); }
+  function addDeposit() { const value = num(depositValueInput?.value); if (!value || value <= 0) { depositValueInput?.focus(); return; } const { available } = totals(); if (value > available) { alert('O valor depositado não pode ser maior que o saldo guardado disponível.'); depositValueInput?.focus(); return; } state.entries.unshift(createEntry('deposit', value)); if (depositValueInput) depositValueInput.value = ''; render(); }
+  function openEdit(id) { const entry = state.entries.find(e => e.id === id); if (!entry) return; pendingEditId = id; if (editType) editType.value = entry.type === 'deposit' ? 'deposit' : 'saved'; if (editValue) editValue.value = entry.value; if (editModal) editModal.style.display = 'flex'; }
+  function closeEdit() { if (editModal) editModal.style.display = 'none'; pendingEditId = null; }
+  function openPasswordGate() { if (editPwModal) editPwModal.style.display = 'flex'; if (editPwInput) { editPwInput.value = ''; editPwInput.type = 'password'; editPwInput.focus(); } if (editPwToggle) editPwToggle.textContent = '👁'; }
+  function confirmEditWithPassword() { if (!pendingEditId) return; if ((editPwInput?.value || '') !== '1234') { alert('Senha incorreta.'); return; } const entry = state.entries.find(e => e.id === pendingEditId); if (!entry) { closeEdit(); if (editPwModal) editPwModal.style.display = 'none'; return; } const newValue = num(editValue?.value); if (!newValue || newValue <= 0) { editValue?.focus(); return; } entry.type = editType?.value === 'deposit' ? 'deposit' : 'saved'; entry.value = newValue; closeEdit(); if (editPwModal) editPwModal.style.display = 'none'; render(); }
+  function applyTheme(theme) { root.setAttribute('data-theme', theme); if (themeToggleBtn) themeToggleBtn.textContent = theme === 'dark' ? '☀️' : '🌙'; try { localStorage.setItem('preferred-theme', theme); } catch {} }
+  function initTheme() { let savedTheme = null; try { savedTheme = localStorage.getItem('preferred-theme'); } catch {} applyTheme(savedTheme === 'dark' ? 'dark' : 'light'); if (themeToggleBtn) themeToggleBtn.addEventListener('click', () => applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark')); }
+  addSavedBtn?.addEventListener('click', addSaved); addDepositBtn?.addEventListener('click', addDeposit); savedValueInput?.addEventListener('keydown', e => { if (e.key === 'Enter') addSaved(); }); depositValueInput?.addEventListener('keydown', e => { if (e.key === 'Enter') addDeposit(); }); historyBody?.addEventListener('click', e => { const btn = e.target.closest('[data-edit]'); if (btn) openEdit(btn.getAttribute('data-edit')); }); editCancel?.addEventListener('click', closeEdit); editSave?.addEventListener('click', openPasswordGate); editPwCancel?.addEventListener('click', () => { if (editPwModal) editPwModal.style.display = 'none'; }); editPwConfirm?.addEventListener('click', confirmEditWithPassword); editPwToggle?.addEventListener('click', () => { if (!editPwInput) return; editPwInput.type = editPwInput.type === 'password' ? 'text' : 'password'; editPwToggle.textContent = editPwInput.type === 'password' ? '👁' : '🙈'; }); document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeEdit(); if (editPwModal) editPwModal.style.display = 'none'; } }); if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {}); state = loadState(); initTheme(); render();
+})();
 </script>
 </body>
 </html>
