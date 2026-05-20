@@ -595,6 +595,11 @@
     const depositCountEl = document.getElementById('depositCount');
 
     const editModal = document.getElementById('editModal');
+    const editPwModal = document.getElementById('editPwModal');
+    const editPwInput = document.getElementById('editPwInput');
+    const editPwToggle = document.getElementById('editPwToggle');
+    const editPwCancel = document.getElementById('editPwCancel');
+    const editPwConfirm = document.getElementById('editPwConfirm');
     const editType = document.getElementById('editType');
     const editValue = document.getElementById('editValue');
     const cancelEditBtn = document.getElementById('cancelEditBtn');
@@ -820,18 +825,33 @@
 
     function saveEdit() {
       if (!pendingEditId) return;
+      editPwInput.value = '';
+      editPwInput.type = 'password';
+      editPwToggle.textContent = '👁';
+      editPwModal.style.display = 'flex';
+      editPwInput.focus();
+    }
+
+    function confirmEditWithPassword() {
+      if (!pendingEditId) return;
+      if (editPwInput.value !== '1234') {
+        alert('Senha incorreta.');
+        return;
+      }
       const entry = state.entries.find(e => e.id === pendingEditId);
-      if (!entry) return;
+      if (!entry) { closeEdit(); editPwModal.style.display = 'none'; return; }
       const newType = editType.value === 'deposit' ? 'deposit' : 'saved';
       const newValue = Number(editValue.value);
       if (!newValue || newValue <= 0) { editValue.focus(); return; }
       entry.type = newType;
       entry.value = newValue;
+      editPwModal.style.display = 'none';
       closeEdit();
       updateDashboard();
     }
 
     function openDelete(id) {
+function openDelete(id) {
       const entry = state.entries.find(e => e.id === id);
       if (!entry) return;
       pendingDeleteId = id;
@@ -893,6 +913,23 @@
     cancelEditBtn.addEventListener('click', closeEdit);
     saveEditBtn.addEventListener('click', saveEdit);
     editModal.addEventListener('click', (e) => { if (e.target === editModal) closeEdit(); });
+
+    editPwToggle.addEventListener('click', () => {
+      if (editPwInput.type === 'password') {
+        editPwInput.type = 'text';
+        editPwToggle.textContent = '🙈';
+      } else {
+        editPwInput.type = 'password';
+        editPwToggle.textContent = '👁';
+      }
+    });
+
+    editPwCancel.addEventListener('click', () => {
+      editPwModal.style.display = 'none';
+    });
+
+    editPwConfirm.addEventListener('click', confirmEditWithPassword);
+    editPwModal.addEventListener('click', (e) => { if (e.target === editPwModal) editPwModal.style.display = 'none'; });
 
     pwToggle.addEventListener('click', () => {
       if (pwInput.type === 'password') {
