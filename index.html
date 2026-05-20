@@ -431,7 +431,7 @@
     </div>
     </section>
 
-    <p class="footer-note">O app funciona sem Internet depois do primeiro carregamento.</p>
+    <p class="footer-note">Para instalar, publique esta pasta na raiz do repositório no GitHub Pages. Depois, o app funciona sem Internet com os arquivos em cache.</p>
     <section class="panel" style="margin-top:1rem;">
       <div class="panel-body">
         <h2>Como instalar no celular</h2>
@@ -919,7 +919,7 @@
     pwModal.addEventListener('click', (e) => { if (e.target === pwModal) closeDeleteModal(); });
 
     (function () {
-      let current = 'light';
+      let current = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       root.setAttribute('data-theme', current);
       function icon(theme) {
         return theme === 'dark'
