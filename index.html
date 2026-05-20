@@ -909,8 +909,8 @@
     pwModal.addEventListener('click', (e) => { if (e.target === pwModal) closeDeleteModal(); });
 
     (function () {
-      let current = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      root.setAttribute('data-theme', current);
+      let current = 'light';
+      root.setAttribute('data-theme', 'light'); current = 'light';
       function icon(theme) {
         return theme === 'dark'
           ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
@@ -920,7 +920,7 @@
         themeToggle.innerHTML = icon(current);
         themeToggle.addEventListener('click', () => {
           current = current === 'dark' ? 'light' : 'dark';
-          root.setAttribute('data-theme', current);
+          root.setAttribute('data-theme', 'light'); current = 'light';
           themeToggle.innerHTML = icon(current);
         });
       }
