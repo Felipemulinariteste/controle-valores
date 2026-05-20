@@ -810,7 +810,8 @@
     function addSaved() {
       const value = Number(savedValueInput.value);
       if (!value || value <= 0) { savedValueInput.focus(); return; }
-      state.entries.unshift(createEntry('saved', value));
+      const entry = createEntry('saved', value);
+      state.entries.unshift(entry);
       savedValueInput.value = '';
       updateDashboard();
     }
@@ -818,6 +819,18 @@
     function addDeposit() {
       const value = Number(depositValueInput.value);
       if (!value || value <= 0) { depositValueInput.focus(); return; }
+      const { finalBalance } = getTotals();
+      if (value > finalBalance) {
+        alert('O valor depositado não pode ser maior que o saldo guardado disponível.');
+        depositValueInput.focus();
+        return;
+      }
+      const entry = createEntry('deposit', value);
+      state.entries.unshift(entry);
+      depositValueInput.value = '';
+      updateDashboard();
+    }
+
       const { finalBalance } = getTotals();
       if (value > finalBalance) {
         alert('O valor depositado não pode ser maior que o saldo guardado disponível.');
@@ -1001,6 +1014,25 @@ function openDelete(id) {
         localStorage.setItem('preferred-theme', theme);
       }
       const saved = localStorage.getItem('preferred-theme');
+      apply(saved === 'dark' ? 'dark' : 'light');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const now = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          apply(now);
+        });
+      }
+    })();
+
+
+    (function () {
+      const btn = document.getElementById('themeToggleBtn');
+      function apply(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+        try { localStorage.setItem('preferred-theme', theme); } catch(e) {}
+      }
+      let saved = null;
+      try { saved = localStorage.getItem('preferred-theme'); } catch(e) {}
       apply(saved === 'dark' ? 'dark' : 'light');
       if (btn) {
         btn.addEventListener('click', () => {
