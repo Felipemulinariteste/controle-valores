@@ -40,20 +40,20 @@
       --font-body: 'Satoshi', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     }
     [data-theme="dark"] {
-      --color-bg: #0f1720;
-      --color-surface: #121b26;
-      --color-surface-2: #162231;
-      --color-surface-offset: #1a2a3d;
-      --color-divider: #243246;
-      --color-text: #f4f8fb;
-      --color-text-muted: #b6c3cf;
-      --color-text-faint: #90a0b0;
-      --color-primary: #58b7ff;
-      --color-primary-hover: #7cc5ff;
-      --color-primary-highlight: #17324a;
-      --color-success-highlight: #173a2b;
-      --color-orange-highlight: #3b2c19;
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
+      --color-bg: #171614;
+      --color-surface: #1c1b19;
+      --color-surface-2: #201f1d;
+      --color-surface-offset: #22211f;
+      --color-divider: #2b2a28;
+      --color-text: #efede7;
+      --color-text-muted: #b9b5ab;
+      --color-text-faint: #8b877f;
+      --color-primary: #4f98a3;
+      --color-primary-hover: #69b3be;
+      --color-primary-highlight: #263738;
+      --color-success-highlight: #293323;
+      --color-orange-highlight: #3a2d1d;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.22);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -427,7 +427,7 @@
       </div>
       <div style="display:flex; gap:.5rem; align-items:center;">
       <button class="btn btn-secondary" id="installBtn" type="button" style="min-height:44px; display:none; white-space:nowrap;"></button>
-      <button class="theme-toggle" type="button" id="themeToggleBtn" aria-label="Trocar tema">🌙</button>
+      
     </div>
     </section>
 
@@ -908,17 +908,8 @@
     pwConfirm.addEventListener('click', confirmDeleteWithPassword);
     pwModal.addEventListener('click', (e) => { if (e.target === pwModal) closeDeleteModal(); });
 
-    (function () {
-      const btn = document.getElementById('themeToggleBtn');
-      document.documentElement.setAttribute('data-theme', 'light');
-      if (btn) {
-        btn.addEventListener('click', () => {
-          const now = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-          document.documentElement.setAttribute('data-theme', now);
-          btn.textContent = now === 'dark' ? '☀️' : '🌙';
-        });
-      }
-    })();
+    
+
 
 
     let deferredPrompt = null;
@@ -944,6 +935,24 @@
 
     state = loadState();
     updateDashboard();
-  </script>
+  
+
+    (function () {
+      const btn = document.getElementById('themeToggleBtn');
+      function apply(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+        localStorage.setItem('preferred-theme', theme);
+      }
+      const saved = localStorage.getItem('preferred-theme');
+      apply(saved === 'dark' ? 'dark' : 'light');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const now = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          apply(now);
+        });
+      }
+    })();
+</script>
 </body>
 </html>
