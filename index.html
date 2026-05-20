@@ -633,15 +633,10 @@
     const pwCancel = document.getElementById('pwCancel');
     const pwConfirm = document.getElementById('pwConfirm');
 
-    const themeToggle = document.getElementById('themeToggleBtn');
-    const root = document.documentElement;
-
-    let state = { entries: [] };
-    let pendingEditId = null;
-    let pendingEditData = null;
-    let pendingDeleteId = null;
-
     const formatMoney = (value) => new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value); = (value) => new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
     }).format(value);
@@ -1006,24 +1001,8 @@ function openDelete(id) {
     updateDashboard();
   
 
-    (function () {
-      const btn = document.getElementById('themeToggleBtn');
-      function apply(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
-        localStorage.setItem('preferred-theme', theme);
-      }
-      const saved = localStorage.getItem('preferred-theme');
-      apply(saved === 'dark' ? 'dark' : 'light');
-      if (btn) {
-        btn.addEventListener('click', () => {
-          const now = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-          apply(now);
-        });
-      }
-    })();
-
-
+    </script>
+<script>
     (function () {
       const btn = document.getElementById('themeToggleBtn');
       function apply(theme) {
@@ -1041,6 +1020,6 @@ function openDelete(id) {
         });
       }
     })();
-</script>
+  </script>
 </body>
 </html>
