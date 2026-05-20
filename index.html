@@ -427,7 +427,7 @@
       </div>
       <div style="display:flex; gap:.5rem; align-items:center;">
       <button class="btn btn-secondary" id="installBtn" type="button" style="min-height:44px; display:none; white-space:nowrap;"></button>
-      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Trocar tema">🌙</button>
+      <button class="theme-toggle" type="button" id="themeToggleBtn" aria-label="Trocar tema">🌙</button>
     </div>
     </section>
 
@@ -606,7 +606,7 @@
     const pwCancel = document.getElementById('pwCancel');
     const pwConfirm = document.getElementById('pwConfirm');
 
-    const themeToggle = document.querySelector('[data-theme-toggle]');
+    const themeToggle = document.getElementById('themeToggleBtn');
     const root = document.documentElement;
 
     let state = { entries: [] };
@@ -909,20 +909,15 @@
     pwModal.addEventListener('click', (e) => { if (e.target === pwModal) closeDeleteModal(); });
 
     (function () {
-      const toggle = document.querySelector('[data-theme-toggle]');
-      let current = 'light';
-      root.setAttribute('data-theme', 'light');
-      function setTheme(theme) {
-        current = theme;
-        root.setAttribute('data-theme', theme);
-        if (toggle) toggle.textContent = theme === 'dark' ? '☀️' : '🌙';
-      }
-      if (toggle) {
-        toggle.addEventListener('click', () => {
-          setTheme(current === 'dark' ? 'light' : 'dark');
+      const btn = document.getElementById('themeToggleBtn');
+      document.documentElement.setAttribute('data-theme', 'light');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const now = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', now);
+          btn.textContent = now === 'dark' ? '☀️' : '🌙';
         });
       }
-      setTheme('light');
     })();
 
 
