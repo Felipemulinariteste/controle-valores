@@ -787,8 +787,7 @@
     function addSaved() {
       const value = Number(savedValueInput.value);
       if (!value || value <= 0) { savedValueInput.focus(); return; }
-      const entry = createEntry('saved', value);
-      state.entries.unshift(entry);
+      state.entries.unshift(createEntry('saved', value));
       savedValueInput.value = '';
       updateDashboard();
     }
@@ -802,8 +801,7 @@
         depositValueInput.focus();
         return;
       }
-      const entry = createEntry('deposit', value);
-      state.entries.unshift(entry);
+      state.entries.unshift(createEntry('deposit', value));
       depositValueInput.value = '';
       updateDashboard();
     }
@@ -834,12 +832,9 @@
 
     function confirmEditWithPassword() {
       if (!pendingEditId) return;
-      if (editPwInput.value !== '1234') {
-        alert('Senha incorreta.');
-        return;
-      }
+      if (editPwInput.value !== '1234') { alert('Senha incorreta.'); return; }
       const entry = state.entries.find(e => e.id === pendingEditId);
-      if (!entry) { closeEdit(); editPwModal.style.display = 'none'; return; }
+      if (!entry) { editPwModal.style.display = 'none'; closeEdit(); return; }
       const newType = editType.value === 'deposit' ? 'deposit' : 'saved';
       const newValue = Number(editValue.value);
       if (!newValue || newValue <= 0) { editValue.focus(); return; }
@@ -851,6 +846,7 @@
     }
 
     function openDelete(id) {
+function openDelete(id) {
 function openDelete(id) {
       const entry = state.entries.find(e => e.id === id);
       if (!entry) return;
