@@ -601,263 +601,120 @@
   </main>
 
   <script>
-    const STORAGE_KEY = 'controle-valores-guardados-v8';
-
+  (() => {
+    const STORAGE_KEY = 'controle-valores-guardados-v9';
     const savedValueInput = document.getElementById('savedValue');
     const depositValueInput = document.getElementById('depositValue');
     const addSavedBtn = document.getElementById('addSavedBtn');
     const addDepositBtn = document.getElementById('addDepositBtn');
     const historyBody = document.getElementById('historyBody');
-    const quickSummary = document.getElementById('quickSummary');
     const totalSavedEl = document.getElementById('totalSaved');
     const totalDepositedEl = document.getElementById('totalDeposited');
-    const finalBalanceEl = document.getElementById('finalBalance');
-    const currentBalanceEl = document.getElementById('currentBalance');
-    const saveCountEl = document.getElementById('saveCount');
-    const depositCountEl = document.getElementById('depositCount');
-
+    const availableSavedEl = document.getElementById('availableSaved');
+    const cardCountEl = document.getElementById('cardCount');
+    const quickSummary = document.getElementById('quickSummary');
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
     const editModal = document.getElementById('editModal');
     const editPwModal = document.getElementById('editPwModal');
+    const editType = document.getElementById('editType');
+    const editValue = document.getElementById('editValue');
+    const editCancel = document.getElementById('editCancel');
+    const editSave = document.getElementById('editSave');
     const editPwInput = document.getElementById('editPwInput');
     const editPwToggle = document.getElementById('editPwToggle');
     const editPwCancel = document.getElementById('editPwCancel');
     const editPwConfirm = document.getElementById('editPwConfirm');
-    const editType = document.getElementById('editType');
-    const editValue = document.getElementById('editValue');
-    const cancelEditBtn = document.getElementById('cancelEditBtn');
-    const saveEditBtn = document.getElementById('saveEditBtn');
+    const root = document.documentElement;
 
-    const pwModal = document.getElementById('pwModal');
-    const pwInput = document.getElementById('pwInput');
-    const pwToggle = document.getElementById('pwToggle');
-    const pwCancel = document.getElementById('pwCancel');
-    const pwConfirm = document.getElementById('pwConfirm');
+    let state = { entries: [] };
+    let pendingEditId = null;
 
-    const formatMoney = (value) => new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value); = (value) => new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-
-    const formatDate = (date) => new Intl.DateTimeFormat('pt-BR').format(date);
+    const money = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+    const fmtDate = d => new Intl.DateTimeFormat('pt-BR').format(d);
 
     function loadState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return { entries: [] };
         const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed.entries)) return { entries: [] };
-        return { entries: parsed.entries };
+        return { entries: Array.isArray(parsed.entries) ? parsed.entries : [] };
       } catch (e) {
         return { entries: [] };
       }
     }
 
     function saveState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
     }
 
-    function normalizeCounts() {
-      const byTime = [...state.entries].sort((a, b) => new Date(a.ts) - new Date(b.ts));
-      let cSaved = 0;
-      let cDeposit = 0;
-      const map = new Map();
-
-      for (const e of byTime) {
-        if (e.type === 'saved') {
-          cSaved += 1;
-          map.set(e.id, cSaved);
-        } else {
-          cDeposit += 1;
-          map.set(e.id, cDeposit);
-        }
-      }
-
-      state.entries.forEach(e => {
-        e.vez = map.get(e.id) || 0;
-      });
-    }
-
-    function getTotals() {
-      let totalSaved = 0;
-      let totalDeposited = 0;
-
+    function totals() {
+      let saved = 0, deposited = 0;
       for (const e of state.entries) {
-        if (e.type === 'saved') totalSaved += e.value;
-        else totalDeposited += e.value;
+        if (e.type === 'saved') saved += Number(e.value) || 0;
+        if (e.type === 'deposit') deposited += Number(e.value) || 0;
       }
-
-      return {
-        totalSaved,
-        totalDeposited,
-        finalBalance: totalSaved - totalDeposited
-      };
-    }
-
-    function updateDashboard() {
-      normalizeCounts();
-      const { totalSaved, totalDeposited, finalBalance } = getTotals();
-
-      totalSavedEl.textContent = formatMoney(totalSaved);
-      totalDepositedEl.textContent = formatMoney(totalDeposited);
-      finalBalanceEl.textContent = formatMoney(finalBalance);
-      currentBalanceEl.textContent = formatMoney(totalSaved);
-
-      const savedCount = state.entries.filter(e => e.type === 'saved').length;
-      const depositCount = state.entries.filter(e => e.type === 'deposit').length;
-      saveCountEl.textContent = String(savedCount);
-      depositCountEl.textContent = String(depositCount);
-
-      if (!state.entries.length) {
-        historyBody.innerHTML = '<tr><td colspan="6" class="empty">Nenhum valor lançado ainda.</td></tr>';
-      } else {
-        const ordered = [...state.entries].sort((a, b) => new Date(b.ts) - new Date(a.ts));
-        historyBody.innerHTML = ordered.map((entry, index) => {
-          const typeLabel = entry.type === 'saved' ? 'Guardado' : 'Depositado';
-          return `
-            <tr>
-              <td>${index + 1}</td>
-              <td><span class="tag">${typeLabel}</span></td>
-              <td>${formatMoney(entry.value)}</td>
-              <td>${entry.date}</td>
-              <td>${entry.vez || 0}</td>
-              <td>
-                <div class="item-actions">
-                  <button class="tiny-btn" data-edit-id="${entry.id}">Editar</button>
-                  <button class="tiny-btn danger" data-delete-id="${entry.id}">Excluir</button>
-                </div>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      }
-
-      const savedEntries = state.entries
-        .filter(e => e.type === 'saved')
-        .sort((a, b) => new Date(b.ts) - new Date(a.ts));
-      const depositEntries = state.entries
-        .filter(e => e.type === 'deposit')
-        .sort((a, b) => new Date(b.ts) - new Date(a.ts));
-
-      const savedList = savedEntries.slice(0, 4).map(e => `
-        <div class="mini-item">
-          <div>
-            <div>Guardado</div>
-            <small>${e.date} · vez ${e.vez || 0}</small>
-          </div>
-          <strong>${formatMoney(e.value)}</strong>
-        </div>
-      `).join('');
-
-      const depositList = depositEntries.slice(0, 4).map(e => `
-        <div class="mini-item">
-          <div>
-            <div>Depositado</div>
-            <small>${e.date} · vez ${e.vez || 0}</small>
-          </div>
-          <strong>${formatMoney(e.value)}</strong>
-        </div>
-      `).join('');
-
-      quickSummary.innerHTML = `
-        <div class="mini-item">
-          <div>
-            <div>Total guardado</div>
-            <small>${savedCount} lançamento(s)</small>
-          </div>
-          <strong>${formatMoney(totalSaved)}</strong>
-        </div>
-        <div class="mini-item">
-          <div>
-            <div>Total depositado</div>
-            <small>${depositCount} lançamento(s)</small>
-          </div>
-          <strong>${formatMoney(totalDeposited)}</strong>
-        </div>
-        <div class="mini-item">
-          <div>
-            <div>Valor final</div>
-            <small>Guardado menos depositado</small>
-          </div>
-          <strong>${formatMoney(finalBalance)}</strong>
-        </div>
-        ${savedList || ''}
-        ${depositList || ''}
-      `;
-
-      saveState();
+      return { saved, deposited, available: saved - deposited };
     }
 
     function createEntry(type, value) {
       const now = new Date();
-      return {
-        id: Date.now().toString() + Math.random().toString(16).slice(2),
-        type,
-        value: Number(value),
-        date: formatDate(now),
-        ts: now.toISOString(),
-        vez: 0
-      };
+      return { id: String(Date.now()) + Math.random().toString(16).slice(2), type, value: Number(value), date: fmtDate(now), ts: now.toISOString() };
+    }
+
+    function render() {
+      const { saved, deposited, available } = totals();
+      totalSavedEl.textContent = money(saved);
+      totalDepositedEl.textContent = money(deposited);
+      availableSavedEl.textContent = money(available);
+      cardCountEl.textContent = String(state.entries.length);
+      quickSummary.textContent = `Saldo disponível de ${money(available)}.`;
+      historyBody.innerHTML = state.entries.length ? state.entries.map(e => `
+        <tr>
+          <td>${e.type === 'saved' ? 'Guardado' : 'Depositado'}</td>
+          <td>${money(e.value)}</td>
+          <td>${e.date}</td>
+          <td><button class="btn btn-secondary" type="button" data-edit="${e.id}">Editar</button></td>
+        </tr>`).join('') : '<tr><td colspan="4">Nenhum lançamento ainda.</td></tr>';
+      saveState();
     }
 
     function addSaved() {
-      const value = Number(savedValueInput.value);
+      const value = Number(String(savedValueInput.value).replace(',', '.'));
       if (!value || value <= 0) { savedValueInput.focus(); return; }
-      const entry = createEntry('saved', value);
-      state.entries.unshift(entry);
+      state.entries.unshift(createEntry('saved', value));
       savedValueInput.value = '';
-      updateDashboard();
+      render();
     }
 
     function addDeposit() {
-      const value = Number(depositValueInput.value);
+      const value = Number(String(depositValueInput.value).replace(',', '.'));
       if (!value || value <= 0) { depositValueInput.focus(); return; }
-      const { finalBalance } = getTotals();
-      if (value > finalBalance) {
-        alert('O valor depositado não pode ser maior que o saldo guardado disponível.');
-        depositValueInput.focus();
-        return;
-      }
-      const entry = createEntry('deposit', value);
-      state.entries.unshift(entry);
-      depositValueInput.value = '';
-      updateDashboard();
-    }
-
-      const { finalBalance } = getTotals();
-      if (value > finalBalance) {
-        alert('O valor depositado não pode ser maior que o saldo guardado disponível.');
-        depositValueInput.focus();
-        return;
-      }
+      const { available } = totals();
+      if (value > available) { alert('O valor depositado não pode ser maior que o saldo guardado disponível.'); depositValueInput.focus(); return; }
       state.entries.unshift(createEntry('deposit', value));
       depositValueInput.value = '';
-      updateDashboard();
+      render();
     }
 
-        function openEdit(id) {
+    function openEdit(id) {
       const entry = state.entries.find(e => e.id === id);
       if (!entry) return;
       pendingEditId = id;
       editType.value = entry.type;
       editValue.value = entry.value;
       editModal.style.display = 'flex';
-      editValue.focus();
     }
 
     function closeEdit() {
-      pendingEditId = null;
       editModal.style.display = 'none';
+      pendingEditId = null;
     }
 
-    function saveEdit() {
-      if (!pendingEditId) return;
+    function startPasswordEdit() {
+      editPwModal.style.display = 'flex';
       editPwInput.value = '';
       editPwInput.type = 'password';
       editPwToggle.textContent = '👁';
-      editPwModal.style.display = 'flex';
       editPwInput.focus();
     }
 
@@ -865,161 +722,50 @@
       if (!pendingEditId) return;
       if (editPwInput.value !== '1234') { alert('Senha incorreta.'); return; }
       const entry = state.entries.find(e => e.id === pendingEditId);
-      if (!entry) { editPwModal.style.display = 'none'; closeEdit(); return; }
+      if (!entry) return;
       const newType = editType.value === 'deposit' ? 'deposit' : 'saved';
-      const newValue = Number(editValue.value);
+      const newValue = Number(String(editValue.value).replace(',', '.'));
       if (!newValue || newValue <= 0) { editValue.focus(); return; }
       entry.type = newType;
       entry.value = newValue;
-      editPwModal.style.display = 'none';
       closeEdit();
-      updateDashboard();
+      editPwModal.style.display = 'none';
+      render();
     }
 
-    function openDelete(id) {
-function openDelete(id) {
-function openDelete(id) {
-      const entry = state.entries.find(e => e.id === id);
-      if (!entry) return;
-      pendingDeleteId = id;
-      const info = pwModal.querySelector('.sub');
-      if (info) {
-        info.textContent = `Digite a senha para excluir o lançamento de ${
-          entry.type === 'saved' ? 'Guardado' : 'Depositado'
-        } no valor de ${formatMoney(entry.value)} em ${entry.date}.`;
-      }
-      pwInput.value = '';
-      pwInput.type = 'password';
-      pwToggle.textContent = '👁';
-      pwModal.style.display = 'flex';
-      pwInput.focus();
+    function applyTheme(theme) {
+      root.setAttribute('data-theme', theme);
+      if (themeToggleBtn) themeToggleBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
+      try { localStorage.setItem('preferred-theme', theme); } catch (e) {}
     }
 
-    function closeDeleteModal() {
-      pendingDeleteId = null;
-      pwModal.style.display = 'none';
-    }
-
-    function confirmDeleteWithPassword() {
-      if (!pendingDeleteId) return;
-      const pass = pwInput.value;
-      if (pass !== '1234') {
-        alert('Senha incorreta.');
-        return;
-      }
-      const idx = state.entries.findIndex(e => e.id === pendingDeleteId);
-      if (idx === -1) {
-        closeDeleteModal();
-        return;
-      }
-      state.entries.splice(idx, 1);
-      closeDeleteModal();
-      updateDashboard();
+    function initTheme() {
+      let saved = null;
+      try { saved = localStorage.getItem('preferred-theme'); } catch (e) {}
+      applyTheme(saved === 'dark' ? 'dark' : 'light');
+      if (themeToggleBtn) themeToggleBtn.addEventListener('click', () => applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
     }
 
     addSavedBtn.addEventListener('click', addSaved);
     addDepositBtn.addEventListener('click', addDeposit);
-    savedValueInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addSaved(); });
-    depositValueInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addDeposit(); });
-
-    historyBody.addEventListener('click', (e) => {
-      const editBtn = e.target.closest('[data-edit-id]');
-      const delBtn = e.target.closest('[data-delete-id]');
-      if (editBtn) {
-        const id = editBtn.getAttribute('data-edit-id');
-        openEdit(id);
-        return;
-      }
-      if (delBtn) {
-        const id = delBtn.getAttribute('data-delete-id');
-        openDelete(id);
-        return;
-      }
-    });
-
-    cancelEditBtn.addEventListener('click', closeEdit);
-    saveEditBtn.addEventListener('click', saveEdit);
-    editModal.addEventListener('click', (e) => { if (e.target === editModal) closeEdit(); });
-
-    editPwToggle.addEventListener('click', () => {
-      if (editPwInput.type === 'password') {
-        editPwInput.type = 'text';
-        editPwToggle.textContent = '🙈';
-      } else {
-        editPwInput.type = 'password';
-        editPwToggle.textContent = '👁';
-      }
-    });
-
-    editPwCancel.addEventListener('click', () => {
-      editPwModal.style.display = 'none';
-    });
-
+    savedValueInput.addEventListener('keydown', e => { if (e.key === 'Enter') addSaved(); });
+    depositValueInput.addEventListener('keydown', e => { if (e.key === 'Enter') addDeposit(); });
+    historyBody.addEventListener('click', e => { const btn = e.target.closest('[data-edit]'); if (btn) openEdit(btn.getAttribute('data-edit')); });
+    editCancel.addEventListener('click', closeEdit);
+    editSave.addEventListener('click', startPasswordEdit);
+    editPwCancel.addEventListener('click', () => { editPwModal.style.display = 'none'; });
     editPwConfirm.addEventListener('click', confirmEditWithPassword);
-    editPwModal.addEventListener('click', (e) => { if (e.target === editPwModal) editPwModal.style.display = 'none'; });
+    editPwToggle.addEventListener('click', () => { editPwInput.type = editPwInput.type === 'password' ? 'text' : 'password'; editPwToggle.textContent = editPwInput.type === 'password' ? '👁' : '🙈'; });
 
-    pwToggle.addEventListener('click', () => {
-      if (pwInput.type === 'password') {
-        pwInput.type = 'text';
-        pwToggle.textContent = '🙈';
-      } else {
-        pwInput.type = 'password';
-        pwToggle.textContent = '👁';
-      }
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { closeEdit(); editPwModal.style.display = 'none'; }
     });
 
-    pwCancel.addEventListener('click', closeDeleteModal);
-    pwConfirm.addEventListener('click', confirmDeleteWithPassword);
-    pwModal.addEventListener('click', (e) => { if (e.target === pwModal) closeDeleteModal(); });
-
-    
-
-
-
-    let deferredPrompt = null;
-    const installBtn = document.getElementById('installBtn');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      installBtn.style.display = 'inline-flex';
-    });
-
-    installBtn?.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      installBtn.style.display = 'none';
-    });
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
-    }
-
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
     state = loadState();
-    updateDashboard();
-  
-
-    </script>
-<script>
-    (function () {
-      const btn = document.getElementById('themeToggleBtn');
-      function apply(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
-        try { localStorage.setItem('preferred-theme', theme); } catch(e) {}
-      }
-      let saved = null;
-      try { saved = localStorage.getItem('preferred-theme'); } catch(e) {}
-      apply(saved === 'dark' ? 'dark' : 'light');
-      if (btn) {
-        btn.addEventListener('click', () => {
-          const now = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-          apply(now);
-        });
-      }
-    })();
-  </script>
+    initTheme();
+    render();
+  })();
+</script>
 </body>
 </html>
